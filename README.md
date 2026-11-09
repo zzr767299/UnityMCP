@@ -60,7 +60,7 @@
 ## 特性
 
 - **一键接入**：窗口内 Auto-Setup 自动探测 Python/uv 环境、写入客户端配置并拉起服务器。
-- **28 个内置客户端配置器**：覆盖 Claude Code/Desktop、Cursor、VS Code（含 Insiders）、Windsurf、Codex、Gemini CLI、Qwen Code、Cline、Kilo Code、Kimi Code、Kiro、Trae/Trae CN、OpenCode、OpenClaw、Copilot CLI、CodeBuddy CLI、Cherry Studio、Pi、Rider、Antigravity（含 IDE）、MiniMax Code、WorkBuddy、ZCode、DeepSeek Harness 等。
+- **29 个内置客户端配置器**：覆盖 Claude Code/Desktop、Cursor、VS Code（含 Insiders）、Windsurf、Codex、Gemini CLI、Qwen Code、Cline、Kilo Code、Kimi Code、Kiro、Trae/Trae CN、OpenCode、OpenClaw、Copilot CLI、CodeBuddy CLI、CodeBuddy CN、Cherry Studio、Pi、Rider、Antigravity（含 IDE）、MiniMax Code、WorkBuddy、ZCode、DeepSeek Harness 等。
 - **双传输**：本机 HTTP 或 stdio，在窗口内切换后自动改写到已配置的客户端。
 - **工具覆盖广**：36 个工具 + 19 个资源，见[工具清单](#工具清单)。
 - **脚本编辑与校验**：Basic / Standard / Comprehensive / Strict 四级校验，Strict 走 Roslyn 语义分析。
@@ -71,7 +71,7 @@
 
 ## 本仓库相对上游的改动
 
-在 v10.3.0 基础上新增了两个上游没有的客户端集成，其余客户端均来自上游：
+在 v10.3.0 基础上新增了以下上游没有的客户端集成，其余客户端均来自上游：
 
 | 客户端 | 配置落点 | 关键实现细节 |
 | --- | --- | --- |
@@ -79,6 +79,7 @@
 | **DeepSeek Harness** | `~/.dsh/profiles/<profile>/cordis.patch.yml` | DSH 没有 MCP 设置页，服务器以插件行的形式存在于 profile 的 YAML 补丁层，必须用 `insert:` 条目引入（而非裸覆盖）；按文本行增删，保留注释与其他条目；写入后由 harness 热重载 |
 | **MiniMax Code** | `~/.minimax/mcp.json` | 标准 `mcpServers` 布局，复用 `JsonFileMcpConfigurator`，无需专用 Helper；HTTP 条目写 `streamable-http` 类型（官方文档示例取值，插件分发的 `*.mcp.json` 不接受裸 `http`）；默认写 `enabled=true` 与 `timeout=60000`，避免冷启动 `uvx` 时工具枚举超时 |
 | **WorkBuddy** | `~/.workbuddy/mcp.json` | CodeBuddy 家族的桌面版换皮，标准 `mcpServers` 布局（`WORKBUDDY_CONFIG_DIR` 可覆盖目录）；HTTP 条目写标准 `http` 类型（应用导入时会把 `streamable-http` 归一化为 `http`）；启用语义是 `disabled`（缺省即启用），故不写 `enabled`；默认写 `timeout=60000` 避免冷启动 `uvx` 超时 |
+| **CodeBuddy CN** | `~/.codebuddy/mcp.json` | 腾讯 CodeBuddy IDE 国内版，用户级 MCP 配置就是 `~/.codebuddy/mcp.json`（IDE 首次使用时创建为 `{"mcpServers":{}}` 并监听改动）；项目级 `.mcp.json` 不碰。HTTP 条目的 `type` 必须是 `streamableHttp`——内置校验是字面量联合，写 `http` 会让该服务器被整条丢弃；启用语义是 `disabled`（缺省即启用），故不写 `enabled`；默认写 `timeout=60000`（该字段 ≥1000 按毫秒解释），覆盖冷启动 `uvx` |
 
 相应地扩展了 `ConfigJsonBuilder`（未知字段裁剪、客户端专属 `type` 取值）与 `McpClient` 模型，并新增 `DeepSeekHarnessConfigHelper`。新增配置器由 `McpClientRegistry` 通过 `TypeCache` 自动发现，无需改注册表。
 
@@ -146,7 +147,7 @@ GitHub 镜像把上面的 URL 换成 `https://github.com/zzr767299/UnityMCP.git?
 
 ## 支持的客户端
 
-28 个配置器，均由 `McpClientRegistry` 自动发现。路径以 Windows 为例，macOS/Linux 落在各自用户主目录下。
+29 个配置器，均由 `McpClientRegistry` 自动发现。路径以 Windows 为例，macOS/Linux 落在各自用户主目录下。
 
 | 客户端 | 配置文件 / 方式 |
 | --- | --- |
@@ -168,6 +169,7 @@ GitHub 镜像把上面的 URL 换成 `https://github.com/zzr767299/UnityMCP.git?
 | OpenClaw | `~/.openclaw/openclaw.json`（经 `openclaw-mcp-bridge`，暴露 `unityMCP__call` 代理工具） |
 | Copilot CLI | `~/.copilot/mcp-config.json` |
 | CodeBuddy CLI | `~/.codebuddy.json` |
+| **CodeBuddy CN** | `~/.codebuddy/mcp.json`（用户级；项目级为工作区 `.mcp.json`） |
 | Cherry Studio | `%APPDATA%\Cherry Studio\config` |
 | Pi | `~/.config/mcp/mcp.json` |
 | Rider | `%LOCALAPPDATA%\github-copilot\intellij\mcp.json` |
@@ -339,7 +341,7 @@ UnityMCP/
 │   ├── README.md                     # Editor 窗口使用指南
 │   ├── Editor/                       # 编辑器侧实现
 │   │   ├── Tools/                    # 36 个工具 + 19 个资源（按域分目录）
-│   │   ├── Clients/                  # 各 MCP 客户端配置器（28 个，TypeCache 自动发现）
+│   │   ├── Clients/                  # 各 MCP 客户端配置器（29 个，TypeCache 自动发现）
 │   │   ├── Services/                 # 服务器管理、桥接、传输、工具发现
 │   │   ├── Setup/                    # 安装向导、Skill 同步
 │   │   ├── Helpers/                  # 配置 JSON 构建、端点/路径工具
@@ -405,14 +407,15 @@ git push origin master          # GitHub 镜像（master）
 
 A packaged copy of [CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp) (**MCP for Unity** v10.3.0) — a bridge that connects MCP-capable AI clients to the Unity Editor so they can create objects, edit components, write and validate scripts, run tests, take screenshots and manage assets.
 
-The package exposes **36 tools** and **19 resources** over either local HTTP (`http://127.0.0.1:8080/mcp`) or stdio, and ships **28 client configurators** that are auto-discovered at runtime.
+The package exposes **36 tools** and **19 resources** over either local HTTP (`http://127.0.0.1:8080/mcp`) or stdio, and ships **29 client configurators** that are auto-discovered at runtime.
 
-This copy adds four client integrations that upstream does not ship:
+This copy adds five client integrations that upstream does not ship:
 
 - **ZCode** — writes `~/.zcode/cli/config.json` → `mcp.servers` using only canonical keys (ZCode drops any server that carries an unknown key), supports HTTP and stdio, installs `unity-mcp-skill` into `~/.zcode/skills`, and defaults `timeoutMs` to 60 s so a cold `uvx` start does not trip tool listing.
 - **DeepSeek Harness** — inserts a plugin row into the profile YAML patch layer `~/.dsh/profiles/desktop/cordis.patch.yml` using an `insert:` entry (required because no bundle mounts `@deepseek-ai/dsh-mcp-client`); the file is edited line-wise so comments and other entries survive.
 - **MiniMax Code** — writes the standard `mcpServers` layout in `~/.minimax/mcp.json`; HTTP entries use the `streamable-http` type token from the official docs (plugin-distributed `*.mcp.json` files reject the generic `http` type), and default to `enabled=true` with `timeout=60000` so a cold `uvx` start does not trip tool listing.
 - **WorkBuddy** — a CodeBuddy-family desktop rebrand reading the standard `mcpServers` layout from `~/.workbuddy/mcp.json` (`WORKBUDDY_CONFIG_DIR` override respected); HTTP entries use the standard `http` type (the app normalizes `streamable-http` to `http` on import), and since enablement is a `disabled` flag (absent = enabled) no `enabled` key is written; defaults to `timeout=60000` for cold `uvx` starts.
+- **CodeBuddy CN** — Tencent's CodeBuddy IDE (China edition) reads user-scope servers from `~/.codebuddy/mcp.json` under the standard `mcpServers` container (the IDE creates the file as `{"mcpServers":{}}` on first use and watches it); project scope stays in the workspace `.mcp.json` and is left untouched. HTTP entries must use `type: "streamableHttp"` — the bundled validator is a literal union, so the generic `http` token makes it drop the server — and since enablement is a `disabled` flag (absent = enabled) no `enabled` key is written; defaults to `timeout=60000` (values ≥1000 are read as milliseconds) for cold `uvx` starts.
 
 Every other client — Claude Code/Desktop, Cursor, VS Code, Windsurf, Codex, Gemini CLI, Qwen Code, Cline, Kilo Code, Kimi Code, Kiro, Trae, OpenCode, OpenClaw, Copilot CLI, CodeBuddy CLI, Cherry Studio, Pi, Rider, Antigravity and more — comes from upstream.
 
